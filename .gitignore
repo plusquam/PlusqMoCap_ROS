@@ -1,3 +1,6 @@
+.vscode
+
+install/
 devel/
 logs/
 build/
