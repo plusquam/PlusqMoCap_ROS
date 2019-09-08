@@ -8,13 +8,14 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-roscpp
-rospy
-std_msgs
-message_generation
-actionlib_msgs
-serial
-utils
+  roscpp
+  rospy
+  std_msgs
+  sensor_msgs
+  message_generation
+  actionlib_msgs
+  serial
+  utils
 )
 
 ## System dependencies are found with CMake's conventions
@@ -74,7 +75,8 @@ find_package(Boost REQUIRED COMPONENTS system)
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
+  std_msgs
+  sensor_msgs  # Or other packages containing msgs
 )
 
 ################################################
@@ -107,9 +109,9 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES measurement_node
-CATKIN_DEPENDS serial utils std_msgs message_runtime
+  CATKIN_DEPENDS serial utils std_msgs sensor_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -134,7 +136,11 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME} src/node.cpp)
+set(NODE_SRCs
+    src/node.cpp
+    src/MPU_Data.cpp
+)
+add_executable(${PROJECT_NAME} ${NODE_SRCs})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
