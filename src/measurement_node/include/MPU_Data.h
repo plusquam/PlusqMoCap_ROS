@@ -40,7 +40,9 @@ private:
     float           _gyro_scale;
     unsigned int    _numberOfSensors;
     bool            _useMagnetometer;
+    bool            _biasSet = false;
     std::vector<MPU_Data_Struct_t> _data_container;
+    std::vector<MPU_Data_Struct_t> _bias_container;
 
     void convertRawToData(const std::vector<uint8_t>::const_iterator inputBuffer, MPU_Data_Struct_t &outputStruct);
 
@@ -48,6 +50,7 @@ public:
     MPU_Data(Accel_Sensitivity_Scale_Factor_t accel_scale, float gyro_scale, bool useMagnetometer = false);
 
     bool setData(const std::vector<uint8_t> &inputData);
+    bool setBias(const std::vector<uint8_t> &inputData);
     inline std::vector<MPU_Data_Struct_t> getData()
     {
         return _data_container;

@@ -15,6 +15,7 @@ std::mutex  general_node_mutex, command_mutex, serial_mutex;
 enum Command_enum_t{
   CMD_MEASUREMENT_START_STOP  = 'S',
   CMD_CONNECT                 = 'C',
+  CMD_CALIBRATION             = 'B',
   CMD_QUIT                    = 'Q',
   CMD_NONE
 } command_char = CMD_NONE;
@@ -23,7 +24,7 @@ MPU_Data mpuData(INV_FSR_2G, INV_FSR_250DPS, false);
 
 bool  serialDataReady = false;
 bool  serialPortConnect = false;
-bool  sendMeasurementCommandStart = false;
+Command_enum_t  sendMeasurementCommandStart = CMD_NONE;
 
 bool  keepRunning = true;
 
@@ -44,7 +45,7 @@ void command_thread_fun(void)
           command_char = CMD_MEASUREMENT_START_STOP;
           command_mutex.unlock();
           serial_mutex.lock();
-          sendMeasurementCommandStart = true;
+          sendMeasurementCommandStart = CMD_MEASUREMENT_START_STOP;
           serial_mutex.unlock();
         }
           break;
@@ -55,6 +56,18 @@ void command_thread_fun(void)
           command_mutex.lock();
           command_char = CMD_CONNECT;
           command_mutex.unlock();
+        }
+          break;
+
+        case 'B':
+        case 'b':
+        {
+          command_mutex.lock();
+          command_char = CMD_CALIBRATION;
+          command_mutex.unlock();
+          serial_mutex.lock();
+          sendMeasurementCommandStart = CMD_CALIBRATION;
+          serial_mutex.unlock();
         }
           break;
 
@@ -111,11 +124,24 @@ void serial_thread_fun(void)
     if(!serialPortConnect)
       break;
 
-    if(sendMeasurementCommandStart) {
-      serial.write(std::string("S"));
-      sendMeasurementCommandStart = false;
-      ROS_INFO("Start/Stop command sent");
+    switch(sendMeasurementCommandStart)
+    {
+      case CMD_MEASUREMENT_START_STOP:
+      {
+        serial.write(std::string("S"));
+        ROS_INFO("Start/Stop command sent");
+      }
+        break;
+
+      case CMD_CALIBRATION:
+      {
+        serial.write(std::string("B"));
+        ROS_INFO("Start calibration command sent");
+      }
+        break;
     }
+
+    sendMeasurementCommandStart = CMD_NONE;
     serial_mutex.unlock();
       
     size_t bytesToRead = serial.available();
@@ -125,11 +151,17 @@ void serial_thread_fun(void)
     {
       try{
         inputDataLine = serial.read(1);
-        if(inputDataLine[0] == 'S' && bytesToRead >= DATA_SIZE_WITHOUT_MAG * 3) {
-          inputDataLine += serial.read(DATA_SIZE_WITHOUT_MAG * 3 + 2);
 
+        if(inputDataLine[0] == 'S' && bytesToRead >= DATA_SIZE_WITHOUT_MAG * 3 + 2) {
+          inputDataLine += serial.readline(DATA_SIZE_WITHOUT_MAG * 3 + 2, "\r\n");
           serial_mutex.lock();
           serialDataReady = mpuData.setData(std::vector<uint8_t>(inputDataLine.begin(), inputDataLine.end()));
+          serial_mutex.unlock();
+        }
+        else if(inputDataLine[0] == 'B') {
+          inputDataLine += serial.readline(DATA_SIZE_WITHOUT_MAG * 3, "\r\n");
+          serial_mutex.lock();
+          (void)mpuData.setBias(std::vector<uint8_t>(inputDataLine.begin(), inputDataLine.end()));
           serial_mutex.unlock();
         }
       }
@@ -162,6 +194,7 @@ int main(int argc, char **argv)
   std::cout << "List of key input commands:" << std::endl;
   std::cout << "'C' - connect with dongle," << std::endl;
   std::cout << "'S' - start/stop measurement," << std::endl;
+  std::cout << "'B' - start calibration," << std::endl;
   std::cout << "'Q' - quit node." << std::endl << std::endl;
 
   std::thread serial_thread;
@@ -189,7 +222,7 @@ int main(int argc, char **argv)
       serial_mutex.unlock();
 
       // Publish IMU data
-      MPU_Data::createDataRosMsg(data_containers[1], imu_msg);
+      MPU_Data::createDataRosMsg(data_containers[0], imu_msg);
       imuTopicPublisher.publish(imu_msg);
     }
     else

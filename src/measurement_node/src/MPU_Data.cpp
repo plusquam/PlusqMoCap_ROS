@@ -66,10 +66,56 @@ bool MPU_Data::setData(const std::vector<uint8_t> &inputData)
 
             unsigned int dataOffset = sensor_index * DATA_SIZE_WITHOUT_MAG + 3;
             convertRawToData(inputData.begin() + dataOffset, tempDataStruct);
-            
+
+            if(_biasSet)
+            {
+                tempDataStruct.accel_x -= _bias_container[sensor_index].accel_x;
+                tempDataStruct.accel_y -= _bias_container[sensor_index].accel_y;
+                tempDataStruct.accel_z -= _bias_container[sensor_index].accel_z;
+                tempDataStruct.gyro_x -= _bias_container[sensor_index].gyro_x;
+                tempDataStruct.gyro_y -= _bias_container[sensor_index].gyro_y;
+                tempDataStruct.gyro_z -= _bias_container[sensor_index].gyro_z;
+            }
+
             _data_container.push_back(tempDataStruct);
         }
     }
+
+    return true;
+}
+
+bool MPU_Data::setBias(const std::vector<uint8_t> &inputData)
+{
+    if(inputData[0] != 'B')
+        return false;
+
+    _bias_container.clear();
+
+    if(_useMagnetometer) {
+        _numberOfSensors = (inputData.size() - 1) / DATA_SIZE_WITH_MAG;
+        ROS_ERROR("Magnetometer functionality not implemented!\n");
+        return false;
+    }
+    else {
+        _numberOfSensors = (inputData.size() - 1) / DATA_SIZE_WITHOUT_MAG;
+
+        for(int sensor_index = 0; sensor_index < _numberOfSensors; ++sensor_index)
+        {
+            MPU_Data_Struct_t tempDataStruct;
+            tempDataStruct.timestamp = 0;
+
+            unsigned int dataOffset = sensor_index * DATA_SIZE_WITHOUT_MAG + 1;
+            convertRawToData(inputData.begin() + dataOffset, tempDataStruct);
+
+            _bias_container.push_back(tempDataStruct);
+            ROS_INFO("Bias estimation for sensor nr %i:", sensor_index);
+            ROS_INFO("Acc: x=%f, y=%f, z=%f", tempDataStruct.accel_x, tempDataStruct.accel_y, tempDataStruct.accel_z);
+            ROS_INFO("Gyro: x=%f, y=%f, z=%f\n", tempDataStruct.gyro_x, tempDataStruct.gyro_y, tempDataStruct.gyro_z);
+        }
+    }
+
+    _biasSet = true;
+    ROS_INFO("Bias estimation completed\n");
 
     return true;
 }
