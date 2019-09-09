@@ -5,9 +5,12 @@
 #include "ros/ros.h"
 #include <ros/console.h>
 #include "sensor_msgs/Imu.h"
+#include "sensor_msgs/MagneticField.h"
 
 #define DATA_SIZE_WITHOUT_MAG   12
 #define DATA_SIZE_WITH_MAG      18
+
+#define USE_ROS_TIME            1
 
 struct MPU_Data_Struct_t{
     unsigned short  timestamp;
@@ -17,6 +20,12 @@ struct MPU_Data_Struct_t{
     double          gyro_x;
     double          gyro_y;
     double          gyro_z;
+};
+
+struct MPU_Mag_Data_Struct_t{
+    double          x;
+    double          y;
+    double          z;
 };
 
 enum Accel_Sensitivity_Scale_Factor_t{
@@ -38,24 +47,45 @@ class MPU_Data
 private:
     int             _accel_scale;
     float           _gyro_scale;
+    const float     _mag_scale = 6.665f;
     unsigned int    _numberOfSensors;
     bool            _useMagnetometer;
     bool            _biasSet = false;
-    std::vector<MPU_Data_Struct_t> _data_container;
-    std::vector<MPU_Data_Struct_t> _bias_container;
+    std::vector<MPU_Data_Struct_t>      _data_container;
+    std::vector<MPU_Data_Struct_t>      _bias_container;
+    std::vector<MPU_Mag_Data_Struct_t>  _mag_data_container;
 
     void convertRawToData(const std::vector<uint8_t>::const_iterator inputBuffer, MPU_Data_Struct_t &outputStruct);
+    void convertRawMagToData(const std::vector<uint8_t>::const_iterator inputBuffer, MPU_Mag_Data_Struct_t &outputStruct);
 
 public:
-    MPU_Data(Accel_Sensitivity_Scale_Factor_t accel_scale, float gyro_scale, bool useMagnetometer = false);
+    MPU_Data(int numberOfSensors, Accel_Sensitivity_Scale_Factor_t accel_scale, float gyro_scale, bool useMagnetometer = false);
 
     bool setData(const std::vector<uint8_t> &inputData);
     bool setBias(const std::vector<uint8_t> &inputData);
+
+    inline bool useMagnetometer()
+    {
+        return _useMagnetometer;
+    }
+
     inline std::vector<MPU_Data_Struct_t> getData()
     {
         return _data_container;
     }
+
+    inline std::vector<MPU_Mag_Data_Struct_t> getMagData()
+    {
+        return _mag_data_container;
+    }
+
+    inline int getSensorsNumber()
+    {
+        return _numberOfSensors;
+    }
+
     static void createDataRosMsg(const MPU_Data_Struct_t &inputData, sensor_msgs::Imu &msg);
+    static void createMagDataRosMsg(const MPU_Mag_Data_Struct_t &inputData, sensor_msgs::MagneticField &msg);
 };
 
 

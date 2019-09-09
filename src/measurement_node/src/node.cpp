@@ -2,6 +2,7 @@
 #include <sstream>
 #include <thread>
 #include <mutex>
+#include <unistd.h>
 
 #include <serial.h>
 #include <terminal.h>
@@ -20,7 +21,7 @@ enum Command_enum_t{
   CMD_NONE
 } command_char = CMD_NONE;
 
-MPU_Data mpuData(INV_FSR_2G, INV_FSR_250DPS, false);
+MPU_Data mpuData(3, INV_FSR_2G, INV_FSR_2000DPS, true);
 
 bool  serialDataReady = false;
 bool  serialPortConnect = false;
@@ -110,10 +111,13 @@ void serial_thread_fun(void)
   serialPortConnect = true;
   ROS_INFO("Port opened.");
 
+  serial.flush();
+  (void)serial.read(serial.available());
+
   serial.write(std::string("C"));
   ROS_INFO("Remote device connection command sent.");
 
-  ros::Rate loop_rate(300); // 300Hz loop rate
+  ros::Rate loop_rate(200); // 200Hz loop rate
 
   general_node_mutex.lock();
   while(ros::ok() && serial.isOpen() && keepRunning)
@@ -145,21 +149,44 @@ void serial_thread_fun(void)
     serial_mutex.unlock();
       
     size_t bytesToRead = serial.available();
-    std::string inputDataLine;
+    std::string inputDataLine("");
 
     if(bytesToRead)
     {
       try{
         inputDataLine = serial.read(1);
 
-        if(inputDataLine[0] == 'S' && bytesToRead >= DATA_SIZE_WITHOUT_MAG * 3 + 2) {
-          inputDataLine += serial.readline(DATA_SIZE_WITHOUT_MAG * 3 + 2, "\r\n");
-          serial_mutex.lock();
-          serialDataReady = mpuData.setData(std::vector<uint8_t>(inputDataLine.begin(), inputDataLine.end()));
-          serial_mutex.unlock();
+        if(inputDataLine[0] == 'S') {
+          int neededDataNumber = 5; // data for time + 'S' + '\r\n'
+          
+          if(mpuData.useMagnetometer())
+            neededDataNumber += (DATA_SIZE_WITH_MAG * mpuData.getSensorsNumber());
+          else
+            neededDataNumber += (DATA_SIZE_WITHOUT_MAG * mpuData.getSensorsNumber());
+
+          inputDataLine += serial.readline(neededDataNumber, "\r\n");
+
+          while(inputDataLine.length() < neededDataNumber) {
+            if(serial.available())
+              inputDataLine += serial.readline(neededDataNumber, "\r\n");
+            else {
+              usleep(1000);
+            }
+          }
+
+          if((int)inputDataLine.length() == neededDataNumber) {
+            serial_mutex.lock();
+            serialDataReady = mpuData.setData(std::vector<uint8_t>(inputDataLine.begin(), inputDataLine.end()));
+            serial_mutex.unlock();
+          }
+          else
+          {
+            ROS_ERROR("Still bad length -> actual: %d | needed: %d", (int)inputDataLine.length(), neededDataNumber);
+            ROS_ERROR("Last character ASCII: %d", inputDataLine.back());
+          }
         }
         else if(inputDataLine[0] == 'B') {
-          inputDataLine += serial.readline(DATA_SIZE_WITHOUT_MAG * 3, "\r\n");
+          inputDataLine += serial.read(DATA_SIZE_WITHOUT_MAG * mpuData.getSensorsNumber() + 2);
           serial_mutex.lock();
           (void)mpuData.setBias(std::vector<uint8_t>(inputDataLine.begin(), inputDataLine.end()));
           serial_mutex.unlock();
@@ -200,14 +227,21 @@ int main(int argc, char **argv)
   std::thread serial_thread;
   std::thread command_thread(command_thread_fun);
 
-  // Output data message
+  // IMU raw data message
   ros::Publisher imuTopicPublisher = n.advertise<sensor_msgs::Imu>("imu/data_raw", 10, true);
   sensor_msgs::Imu imu_msg;
   imu_msg.header.frame_id = "imu_tf";
   imu_msg.header.stamp.sec = 0;
   imu_msg.header.stamp.nsec = 0;
 
-  ros::Rate loop_rate(300); // 300Hz loop rate
+  // Mag data message
+  ros::Publisher magTopicPublisher = n.advertise<sensor_msgs::MagneticField>("imu/mag", 10, true);
+  sensor_msgs::MagneticField mag_msg;
+  mag_msg.header.frame_id = "imu_tf";
+  mag_msg.header.stamp.sec = 0;
+  mag_msg.header.stamp.nsec = 0;
+
+  ros::Rate loop_rate(200); // 200Hz loop rate
   
   general_node_mutex.lock();
   while (ros::ok() && keepRunning)
@@ -224,6 +258,13 @@ int main(int argc, char **argv)
       // Publish IMU data
       MPU_Data::createDataRosMsg(data_containers[0], imu_msg);
       imuTopicPublisher.publish(imu_msg);
+
+      // Publish Mag data
+      if(mpuData.useMagnetometer()) {
+        std::vector<MPU_Mag_Data_Struct_t> mag_data_containers(mpuData.getMagData());
+        MPU_Data::createMagDataRosMsg(mag_data_containers[0], mag_msg);
+        magTopicPublisher.publish(mag_msg);
+      }
     }
     else
     {
