@@ -21,7 +21,7 @@ enum Command_enum_t{
   CMD_NONE
 } command_char = CMD_NONE;
 
-MPU_Data mpuData(3, INV_FSR_2G, INV_FSR_2000DPS, true);
+MPU_Data mpuData(4, INV_FSR_4G, INV_FSR_500DPS, true);
 
 bool  serialDataReady = false;
 bool  serialPortConnect = false;
