@@ -42,18 +42,21 @@ enum Accel_Sensitivity_Scale_Factor_t{
 #define INV_FSR_2000DPS 16.4f
 // Gyro_Sensitivity_Scale_Factor_t;
 
+#define AK89xx_FSR      (4915)
+
 class MPU_Data
 {
 private:
     int             _accel_scale;
     float           _gyro_scale;
-    const float     _mag_scale = 6.665f;
+    float           _mag_scale;
     unsigned int    _numberOfSensors;
     bool            _useMagnetometer;
     bool            _biasSet = false;
     std::vector<MPU_Data_Struct_t>      _data_container;
     std::vector<MPU_Data_Struct_t>      _bias_container;
     std::vector<MPU_Mag_Data_Struct_t>  _mag_data_container;
+    std::vector<MPU_Mag_Data_Struct_t>  _mag_bias_container;
 
     void convertRawToData(const std::vector<uint8_t>::const_iterator inputBuffer, MPU_Data_Struct_t &outputStruct);
     void convertRawMagToData(const std::vector<uint8_t>::const_iterator inputBuffer, MPU_Mag_Data_Struct_t &outputStruct);

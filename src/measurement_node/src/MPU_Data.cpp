@@ -10,8 +10,7 @@ static constexpr double getDegToRadScaleFactor()
 
 static constexpr double getMagScaleFactor()
 {
-    return 4800.0 / 32767.0 * 1000000.0;
-    // return 6.665 * 1000000.0;
+    return 1000000 / 0.15;
 }
 
 MPU_Data::MPU_Data(int numberOfSensors, Accel_Sensitivity_Scale_Factor_t accel_scale, float gyro_scale, bool useMagnetometer)
@@ -55,11 +54,6 @@ void MPU_Data::convertRawMagToData(const std::vector<uint8_t>::const_iterator in
         int16_t my = (int16_t)( ((uint8_t)inputBuffer[2] << 8) | (uint8_t)inputBuffer[3] );
         int16_t mz = (int16_t)( ((uint8_t)inputBuffer[4] << 8) | (uint8_t)inputBuffer[5] );
 
-        // for(int i = 0; i < 6; ++i)
-        //     printf("%d ", inputBuffer[i]);
-
-        // printf("\n");
-
         outputStruct.x = (double)((double)my / _mag_scale);     // y mag axis same as x axis of accel and gyro
         outputStruct.y = (double)((double)mx / _mag_scale);     // x mag axis same as y axis of accel and gyro
         outputStruct.z = -(double)((double)mz / _mag_scale);    // inverted z axis regarding to accel and gyro
@@ -73,62 +67,48 @@ bool MPU_Data::setData(const std::vector<uint8_t> &inputData)
         return false;
 
     _data_container.clear();
-
-    if(_useMagnetometer) {
+    if(_useMagnetometer)
         _mag_data_container.clear();
         
-        for(int sensor_index = 0; sensor_index < _numberOfSensors; ++sensor_index)
-        {
-            MPU_Data_Struct_t tempDataStruct;
+    unsigned int dataOffset = 3;
+
+    for(int sensor_index = 0; sensor_index < _numberOfSensors; ++sensor_index)
+    {
+        MPU_Data_Struct_t tempDataStruct;
+
+        if(sensor_index == 0)
             tempDataStruct.timestamp = (inputData[1] << 8) | inputData[2];
 
-            unsigned int dataOffset = sensor_index * DATA_SIZE_WITH_MAG + 3;
-            convertRawToData(inputData.begin() + dataOffset, tempDataStruct);
+        convertRawToData(inputData.begin() + dataOffset, tempDataStruct);
 
-            if(_biasSet)
-            {
-                tempDataStruct.accel_x -= _bias_container[sensor_index].accel_x;
-                tempDataStruct.accel_y -= _bias_container[sensor_index].accel_y;
-                tempDataStruct.accel_z -= _bias_container[sensor_index].accel_z;
-                tempDataStruct.gyro_x -= _bias_container[sensor_index].gyro_x;
-                tempDataStruct.gyro_y -= _bias_container[sensor_index].gyro_y;
-                tempDataStruct.gyro_z -= _bias_container[sensor_index].gyro_z;
-            }
+        if(_biasSet)
+        {
+            tempDataStruct.accel_x -= _bias_container[sensor_index].accel_x;
+            tempDataStruct.accel_y -= _bias_container[sensor_index].accel_y;
+            tempDataStruct.accel_z -= _bias_container[sensor_index].accel_z;
+            tempDataStruct.gyro_x -= _bias_container[sensor_index].gyro_x;
+            tempDataStruct.gyro_y -= _bias_container[sensor_index].gyro_y;
+            tempDataStruct.gyro_z -= _bias_container[sensor_index].gyro_z;
+        }
 
-            _data_container.push_back(tempDataStruct);
+        _data_container.push_back(tempDataStruct);
 
-            dataOffset += 12;
+        dataOffset += 12; // Step to mag sensor data or skip to next sensor
+
+        if(_useMagnetometer)
+        {
             MPU_Mag_Data_Struct_t tempMagDataStruct;
             convertRawMagToData(inputData.begin() + dataOffset, tempMagDataStruct);
 
             if(_biasSet)
             {
-                // TODO
+                tempMagDataStruct.x -= _mag_bias_container[sensor_index].x;
+                tempMagDataStruct.y -= _mag_bias_container[sensor_index].y;
+                tempMagDataStruct.z -= _mag_bias_container[sensor_index].z;
             }
             
             _mag_data_container.push_back(tempMagDataStruct);
-        }
-    }
-    else {
-        for(int sensor_index = 0; sensor_index < _numberOfSensors; ++sensor_index)
-        {
-            MPU_Data_Struct_t tempDataStruct;
-            tempDataStruct.timestamp = (inputData[1] << 8) | inputData[2];
-
-            unsigned int dataOffset = sensor_index * DATA_SIZE_WITHOUT_MAG + 3;
-            convertRawToData(inputData.begin() + dataOffset, tempDataStruct);
-
-            if(_biasSet)
-            {
-                tempDataStruct.accel_x -= _bias_container[sensor_index].accel_x;
-                tempDataStruct.accel_y -= _bias_container[sensor_index].accel_y;
-                tempDataStruct.accel_z -= _bias_container[sensor_index].accel_z;
-                tempDataStruct.gyro_x -= _bias_container[sensor_index].gyro_x;
-                tempDataStruct.gyro_y -= _bias_container[sensor_index].gyro_y;
-                tempDataStruct.gyro_z -= _bias_container[sensor_index].gyro_z;
-            }
-
-            _data_container.push_back(tempDataStruct);
+            dataOffset += 6; // Step to next sensor data
         }
     }
 
@@ -141,24 +121,32 @@ bool MPU_Data::setBias(const std::vector<uint8_t> &inputData)
         return false;
 
     _bias_container.clear();
+    if(_useMagnetometer)
+        _mag_bias_container.clear();
 
-    if(_useMagnetometer) {
-        ROS_ERROR("Magnetometer functionality not implemented!\n");
-        return false;
-    }
-    else {
-        for(int sensor_index = 0; sensor_index < _numberOfSensors; ++sensor_index)
-        {
-            MPU_Data_Struct_t tempDataStruct;
-            tempDataStruct.timestamp = 0;
+    unsigned int dataOffset = 1;
+    for(int sensor_index = 0; sensor_index < _numberOfSensors; ++sensor_index)
+    {
+        MPU_Data_Struct_t tempDataStruct;
+        tempDataStruct.timestamp = 0;
 
-            unsigned int dataOffset = sensor_index * DATA_SIZE_WITHOUT_MAG + 1;
-            convertRawToData(inputData.begin() + dataOffset, tempDataStruct);
+        convertRawToData(inputData.begin() + dataOffset, tempDataStruct);
 
-            _bias_container.push_back(tempDataStruct);
-            ROS_INFO("Bias estimation for sensor nr %i:", sensor_index);
-            ROS_INFO("Acc: x=%f, y=%f, z=%f", tempDataStruct.accel_x, tempDataStruct.accel_y, tempDataStruct.accel_z);
-            ROS_INFO("Gyro: x=%f, y=%f, z=%f\n", tempDataStruct.gyro_x, tempDataStruct.gyro_y, tempDataStruct.gyro_z);
+        _bias_container.push_back(tempDataStruct);
+        ROS_INFO("Bias estimation for sensor nr %i:", sensor_index);
+        ROS_INFO("Acc: x=%f, y=%f, z=%f", tempDataStruct.accel_x, tempDataStruct.accel_y, tempDataStruct.accel_z);
+        ROS_INFO("Gyro: x=%f, y=%f, z=%f", tempDataStruct.gyro_x, tempDataStruct.gyro_y, tempDataStruct.gyro_z);
+
+        dataOffset += 12; // Step to mag sensor data or skip to next sensor
+
+        if(_useMagnetometer) {
+            
+            MPU_Mag_Data_Struct_t tempMagDataStruct;
+            convertRawMagToData(inputData.begin() + dataOffset, tempMagDataStruct);
+            _mag_bias_container.push_back(tempMagDataStruct);
+            ROS_INFO("Mag: x=%f, y=%f, z=%f", tempMagDataStruct.x, tempMagDataStruct.y, tempMagDataStruct.z);
+
+            dataOffset += 6; // Step to next sensor data
         }
     }
 
