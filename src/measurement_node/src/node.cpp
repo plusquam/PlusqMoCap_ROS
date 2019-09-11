@@ -10,6 +10,8 @@
 #include "MPU_Data.h"
 #include "Imu_Motion.h"
 
+#include <tf2_ros/transform_broadcaster.h>
+
 #define SERIAL_PORT_NAME "/dev/ttyACM0"
 
 std::mutex  general_node_mutex, command_mutex, serial_mutex;
@@ -214,6 +216,24 @@ void serial_thread_fun(void)
 
 void ImuDataCallback(const sensor_msgs::Imu::ConstPtr &msg)
 {
+  static tf2_ros::TransformBroadcaster br;
+  static Imu_Motion imuMotion;
+  geometry_msgs::TransformStamped transformStamped;
+
+  imuMotion.process(msg);
+
+  transformStamped.header.stamp = ros::Time::now();
+  transformStamped.header.frame_id = "base_link";
+  transformStamped.child_frame_id = "test_frame";
+
+  tf2::convert(imuMotion.getPosition(), transformStamped.transform.translation);
+
+  transformStamped.transform.rotation = msg->orientation;
+
+  tf2::Vector3 pos = imuMotion.getPosition();
+  ROS_INFO("Pos: %f, %f, %f", pos.m_floats[0], pos.m_floats[1], pos.m_floats[2]);
+
+  br.sendTransform(transformStamped);
 }
 
 

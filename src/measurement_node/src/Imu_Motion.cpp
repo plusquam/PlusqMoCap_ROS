@@ -12,7 +12,7 @@ Imu_Motion::Imu_Motion()
 void Imu_Motion::removeGravity(const tf2::Quaternion &orientation, tf2::Vector3 &accelerationVector)
 {
     tf2::Vector3    gravityAccel(0.0, 0.0, G_ACCEL_VALUE);
-    tf2::quatRotate(orientation, gravityAccel);
+    gravityAccel = tf2::quatRotate(orientation.inverse(), gravityAccel);
     accelerationVector -= gravityAccel;
 }
 
@@ -26,10 +26,10 @@ void Imu_Motion::process(const sensor_msgs::Imu::ConstPtr &imuData)
     // Removing gravity
     removeGravity(orientation, acceleration);
 
-    if(acceleration.length() > 0.15)
-    {
+    // if(acceleration.length() > 0.15)
+    // {
         // Rotating accel vector
-        tf2::quatRotate(orientation, acceleration);
+        acceleration = tf2::quatRotate(orientation, acceleration);
 
         // Computing displacement and velocity for every exis
         // New displacement calculation
@@ -40,6 +40,6 @@ void Imu_Motion::process(const sensor_msgs::Imu::ConstPtr &imuData)
 
         // New previous acceleration value
         acceleration_o = acceleration;
-    }
+    // }
 }
 

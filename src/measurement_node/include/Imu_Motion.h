@@ -6,6 +6,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <geometry_msgs/TransformStamped.h>
 
 #define SAMPLE_INTERVAL (0.010)
 
@@ -18,11 +19,13 @@ private:
     tf2::Vector3    acceleration_o; // [m/s^2]
     tf2::Vector3    position_o;
 
-    void computeMotionData();
-
 public:
     Imu_Motion();
     void process(const sensor_msgs::Imu::ConstPtr &imuData);
+    inline tf2::Vector3 getPosition()
+    {
+        return position_o;
+    }
 
     static inline void removeGravity(const tf2::Quaternion &orientation, tf2::Vector3 &accelerationVector);
 };

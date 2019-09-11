@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   serial
   utils
   tf2
+  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -112,7 +113,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES measurement_node
-  CATKIN_DEPENDS serial utils std_msgs sensor_msgs message_runtime tf2
+  CATKIN_DEPENDS serial utils std_msgs sensor_msgs message_runtime tf2 tf2_ros
 #  DEPENDS system_lib
 )
 
