@@ -8,6 +8,7 @@
 #include <terminal.h>
 
 #include "MPU_Data.h"
+#include "Imu_Motion.h"
 
 #define SERIAL_PORT_NAME "/dev/ttyACM0"
 
@@ -21,7 +22,7 @@ enum Command_enum_t{
   CMD_NONE
 } command_char = CMD_NONE;
 
-MPU_Data mpuData(4, INV_FSR_4G, INV_FSR_500DPS, true);
+MPU_Data mpuData(4, INV_FSR_4G, INV_FSR_500DPS, false);
 
 bool  serialDataReady = false;
 bool  serialPortConnect = false;
@@ -211,12 +212,16 @@ void serial_thread_fun(void)
   }
 }
 
+void ImuDataCallback(const sensor_msgs::Imu::ConstPtr &msg)
+{
+}
+
 
 int main(int argc, char **argv)
 {
   // Node init
   ros::init(argc, argv, "measurement_node");
-  ros::NodeHandle n;
+  ros::NodeHandle node;
 
   std::cout << "List of key input commands:" << std::endl;
   std::cout << "'C' - connect with dongle," << std::endl;
@@ -228,18 +233,20 @@ int main(int argc, char **argv)
   std::thread command_thread(command_thread_fun);
 
   // IMU raw data message
-  ros::Publisher imuTopicPublisher = n.advertise<sensor_msgs::Imu>("imu/data_raw", 10, true);
+  ros::Publisher imuTopicPublisher = node.advertise<sensor_msgs::Imu>("imu/data_raw", 10, true);
   sensor_msgs::Imu imu_msg;
   imu_msg.header.frame_id = "imu_tf";
   imu_msg.header.stamp.sec = 0;
   imu_msg.header.stamp.nsec = 0;
 
   // Mag data message
-  ros::Publisher magTopicPublisher = n.advertise<sensor_msgs::MagneticField>("imu/mag", 10, true);
+  ros::Publisher magTopicPublisher = node.advertise<sensor_msgs::MagneticField>("imu/mag", 10, true);
   sensor_msgs::MagneticField mag_msg;
   mag_msg.header.frame_id = "imu_tf";
   mag_msg.header.stamp.sec = 0;
   mag_msg.header.stamp.nsec = 0;
+
+  ros::Subscriber imuFilteredSubscriber = node.subscribe("/imu/data", 10, &ImuDataCallback);
 
   ros::Rate loop_rate(200); // 200Hz loop rate
   

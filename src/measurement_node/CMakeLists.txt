@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   serial
   utils
+  tf2
 )
 
 ## System dependencies are found with CMake's conventions
@@ -111,7 +112,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES measurement_node
-  CATKIN_DEPENDS serial utils std_msgs sensor_msgs message_runtime
+  CATKIN_DEPENDS serial utils std_msgs sensor_msgs message_runtime tf2
 #  DEPENDS system_lib
 )
 
@@ -139,6 +140,7 @@ include_directories(
 set(NODE_SRCs
     src/node.cpp
     src/MPU_Data.cpp
+    src/Imu_Motion.cpp
 )
 add_executable(${PROJECT_NAME} ${NODE_SRCs})
 

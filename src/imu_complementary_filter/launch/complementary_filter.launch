@@ -11,7 +11,7 @@
     <param name="publish_debug_topics" value="true"/>
     <param name="use_mag" value="false"/>
     <param name="gain_acc" value="0.01"/>
-    <param name="gain_mag" value="0.1"/>
+    <param name="gain_mag" value="0.01"/>
     <param name="constant_dt" value="0.01"/>
   </node>
 </launch>

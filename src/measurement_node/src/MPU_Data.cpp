@@ -76,8 +76,7 @@ bool MPU_Data::setData(const std::vector<uint8_t> &inputData)
     {
         MPU_Data_Struct_t tempDataStruct;
 
-        if(sensor_index == 0)
-            tempDataStruct.timestamp = (inputData[1] << 8) | inputData[2];
+        tempDataStruct.timestamp = (inputData[1] << 8) | inputData[2];
 
         convertRawToData(inputData.begin() + dataOffset, tempDataStruct);
 

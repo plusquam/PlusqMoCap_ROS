@@ -53,6 +53,7 @@ private:
     unsigned int    _numberOfSensors;
     bool            _useMagnetometer;
     bool            _biasSet = false;
+
     std::vector<MPU_Data_Struct_t>      _data_container;
     std::vector<MPU_Data_Struct_t>      _bias_container;
     std::vector<MPU_Mag_Data_Struct_t>  _mag_data_container;
