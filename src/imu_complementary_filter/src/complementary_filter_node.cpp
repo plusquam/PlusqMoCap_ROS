@@ -36,7 +36,10 @@ int main (int argc, char **argv)
   ros::init (argc, argv, "ComplementaryFilterROS");
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
-  imu_tools::ComplementaryFilterROS filter(nh, nh_private);
+  imu_tools::ComplementaryFilterROS filter0(nh, nh_private, "/imu/data_raw/0", "/imu/data/0");
+  imu_tools::ComplementaryFilterROS filter1(nh, nh_private, "/imu/data_raw/1", "/imu/data/1");
+  imu_tools::ComplementaryFilterROS filter2(nh, nh_private, "/imu/data_raw/2", "/imu/data/2");
+  imu_tools::ComplementaryFilterROS filter3(nh, nh_private, "/imu/data_raw/3", "/imu/data/3");
   ros::spin();
   return 0;
 }

@@ -30,12 +30,12 @@ void Imu_Motion::process(const sensor_msgs::Imu::ConstPtr &imuData)
 
     // Computing new acceleration vector
     acceleration = tf2::quatRotate(orientation, acceleration);
-    ROS_INFO("Acc: %f, %f, %f", acceleration.m_floats[0], acceleration.m_floats[1], acceleration.m_floats[2]);
+    // ROS_INFO("Acc: %f, %f, %f", acceleration.m_floats[0], acceleration.m_floats[1], acceleration.m_floats[2]);
 
     // Computing displacement and velocity for every axis
     // New displacement calculation
     position_o += ((acceleration + acceleration_o) / 4.0 * dt2) + (velocity_o * dt);
-    ROS_INFO("Pos: %f, %f, %f", position_o.m_floats[0], position_o.m_floats[1], position_o.m_floats[2]);
+    // ROS_INFO("Pos: %f, %f, %f", position_o.m_floats[0], position_o.m_floats[1], position_o.m_floats[2]);
 
     // New speed calculation
     velocity_o += (acceleration + acceleration_o) / 2.0 * dt;
@@ -67,7 +67,7 @@ void Imu_Motion::process(const sensor_msgs::Imu::ConstPtr &imuData)
     }
     velocity_queue.push_back(velocity_o);
 
-    ROS_INFO("Vel: %f, %f, %f", velocity_o.m_floats[0], velocity_o.m_floats[1], velocity_o.m_floats[2]);
-    printf("\n");
+    // ROS_INFO("Vel: %f, %f, %f", velocity_o.m_floats[0], velocity_o.m_floats[1], velocity_o.m_floats[2]);
+    // printf("\n");
 }
 

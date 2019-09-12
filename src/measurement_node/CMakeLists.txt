@@ -142,6 +142,7 @@ set(NODE_SRCs
     src/node.cpp
     src/MPU_Data.cpp
     src/Imu_Motion.cpp
+    src/imu_callbacks.cpp
 )
 add_executable(${PROJECT_NAME} ${NODE_SRCs})
 

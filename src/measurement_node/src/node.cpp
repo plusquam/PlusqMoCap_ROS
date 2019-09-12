@@ -3,18 +3,14 @@
 #include <thread>
 #include <mutex>
 #include <unistd.h>
-#include <fstream>
 
 #include <serial.h>
 #include <terminal.h>
 
 #include "MPU_Data.h"
-#include "Imu_Motion.h"
-
-#include <tf2_ros/transform_broadcaster.h>
+#include "imu_callbacks.h"
 
 #define SERIAL_PORT_NAME "/dev/ttyACM0"
-#define LOG_FILENAME    "log.csv"
 #define USE_MAG         false
 #define SENSORS_NUMBER  4
 
@@ -218,46 +214,6 @@ void serial_thread_fun(void)
   }
 }
 
-void logData(long dataNumber, long timestamp, const tf2::Vector3 &position) {
-  static std::ofstream logFile(LOG_FILENAME, std::ios_base::out);
-  logFile << dataNumber << ",";
-  logFile << timestamp << ",";
-  logFile << position.m_floats[0] << ",";
-  logFile << position.m_floats[1] << ",";
-  logFile << position.m_floats[2];
-  logFile << "\n";
-}
-
-void ImuDataCallback(const sensor_msgs::Imu::ConstPtr &msg)
-{
-  static tf2_ros::TransformBroadcaster br;
-  static Imu_Motion imuMotion;
-  static int loopCounter = 0;
-
-  if(loopCounter > 40) { 
-    static unsigned long dataCounter = 0;
-    geometry_msgs::TransformStamped transformStamped;
-
-    imuMotion.process(msg);
-
-    transformStamped.header.stamp = ros::Time::now();
-    transformStamped.header.frame_id = "base_link";
-    transformStamped.child_frame_id = "test_frame";
-
-    tf2::Vector3 position = imuMotion.getPosition();
-    tf2::convert(position, transformStamped.transform.translation);
-    transformStamped.transform.rotation = msg->orientation;
-    br.sendTransform(transformStamped);
-
-    if(dataCounter % 20 == 0)
-      logData(dataCounter, dataCounter * 5, position);
-
-    dataCounter++;
-  }
-  else {
-    loopCounter++;
-  }
-}
 
 
 int main(int argc, char **argv)
@@ -276,11 +232,30 @@ int main(int argc, char **argv)
   std::thread command_thread(command_thread_fun);
 
   // IMU raw data message
-  ros::Publisher imuTopicPublisher = node.advertise<sensor_msgs::Imu>("imu/data_raw", 3, true);
-  sensor_msgs::Imu imu_msg;
-  imu_msg.header.frame_id = "imu_tf";
-  imu_msg.header.stamp.sec = 0;
-  imu_msg.header.stamp.nsec = 0;
+  ros::Publisher imuTopicPublisher0 = node.advertise<sensor_msgs::Imu>("imu/data_raw/0", 3, true);
+  sensor_msgs::Imu imu_msg0;
+  imu_msg0.header.frame_id = "mock_tf_0";
+  imu_msg0.header.stamp.sec = 0;
+  imu_msg0.header.stamp.nsec = 0;
+
+  ros::Publisher imuTopicPublisher1 = node.advertise<sensor_msgs::Imu>("imu/data_raw/1", 3, true);
+  sensor_msgs::Imu imu_msg1;
+  imu_msg1.header.frame_id = "mock_tf_1";
+  imu_msg1.header.stamp.sec = 0;
+  imu_msg1.header.stamp.nsec = 0;
+
+  ros::Publisher imuTopicPublisher2 = node.advertise<sensor_msgs::Imu>("imu/data_raw/2", 3, true);
+  sensor_msgs::Imu imu_msg2;
+  imu_msg2.header.frame_id = "mock_tf_2";
+  imu_msg2.header.stamp.sec = 0;
+  imu_msg2.header.stamp.nsec = 0;
+
+  ros::Publisher imuTopicPublisher3 = node.advertise<sensor_msgs::Imu>("imu/data_raw/3", 3, true);
+  sensor_msgs::Imu imu_msg3;
+  imu_msg3.header.frame_id = "mock_tf_3";
+  imu_msg3.header.stamp.sec = 0;
+  imu_msg3.header.stamp.nsec = 0;
+  
 
 #if USE_MAG == true
   // Mag data message
@@ -291,7 +266,8 @@ int main(int argc, char **argv)
   mag_msg.header.stamp.nsec = 0;
 #endif
 
-  ros::Subscriber imuFilteredSubscriber = node.subscribe("/imu/data", 10, &ImuDataCallback);
+  // Initialize callbacks for imu filtered data
+  initializeCallbacks(node);
 
   ros::Rate loop_rate(300); // 300Hz loop rate
   
@@ -308,8 +284,14 @@ int main(int argc, char **argv)
       serial_mutex.unlock();
 
       // Publish IMU data
-      MPU_Data::createDataRosMsg(data_containers[0], imu_msg);
-      imuTopicPublisher.publish(imu_msg);
+      MPU_Data::createDataRosMsg(data_containers[0], imu_msg0);
+      imuTopicPublisher0.publish(imu_msg0);
+      MPU_Data::createDataRosMsg(data_containers[1], imu_msg1);
+      imuTopicPublisher1.publish(imu_msg1);
+      MPU_Data::createDataRosMsg(data_containers[2], imu_msg2);
+      imuTopicPublisher2.publish(imu_msg2);
+      MPU_Data::createDataRosMsg(data_containers[3], imu_msg3);
+      imuTopicPublisher3.publish(imu_msg3);
 
 #if USE_MAG == true
       // Publish Mag data
@@ -337,8 +319,14 @@ int main(int argc, char **argv)
       case CMD_CONNECT:
         if(!serialPortConnect) {
           ROS_INFO("Connecting serial port %s...", SERIAL_PORT_NAME);
-          imu_msg.header.stamp.sec = 0;
-          imu_msg.header.stamp.nsec = 0;
+          imu_msg0.header.stamp.sec = 0;
+          imu_msg0.header.stamp.nsec = 0;
+          imu_msg1.header.stamp.sec = 0;
+          imu_msg1.header.stamp.nsec = 0;
+          imu_msg2.header.stamp.sec = 0;
+          imu_msg2.header.stamp.nsec = 0;
+          imu_msg3.header.stamp.sec = 0;
+          imu_msg3.header.stamp.nsec = 0;
           serial_thread = std::thread(serial_thread_fun);
         }
         else {

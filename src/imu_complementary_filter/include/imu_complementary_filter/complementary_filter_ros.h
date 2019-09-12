@@ -50,7 +50,9 @@ class ComplementaryFilterROS
 {
   public:
     ComplementaryFilterROS(const ros::NodeHandle& nh, 
-                           const ros::NodeHandle& nh_private);    
+                           const ros::NodeHandle& nh_private,
+                           const std::string subscribed_topic_name,
+                           const std::string published_topic_name);    
     virtual ~ComplementaryFilterROS();
 
   private:

@@ -38,7 +38,9 @@ namespace imu_tools {
 
 ComplementaryFilterROS::ComplementaryFilterROS(
     const ros::NodeHandle& nh,
-    const ros::NodeHandle& nh_private):
+    const ros::NodeHandle& nh_private,
+    const std::string subscribed_topic_name,
+    const std::string published_topic_name):
   nh_(nh),
   nh_private_(nh_private),
   initialized_filter_(false)
@@ -49,7 +51,7 @@ ComplementaryFilterROS::ComplementaryFilterROS(
   int queue_size = 5;
 
   // Register publishers:
-  imu_publisher_ = nh_.advertise<sensor_msgs::Imu>(ros::names::resolve("imu") + "/data", queue_size);
+  imu_publisher_ = nh_.advertise<sensor_msgs::Imu>(published_topic_name, queue_size);
 
   if (publish_debug_topics_)
   {
@@ -64,7 +66,7 @@ ComplementaryFilterROS::ComplementaryFilterROS(
   }
 
   // Register IMU raw data subscriber.
-  imu_subscriber_.reset(new ImuSubscriber(nh_, ros::names::resolve("imu") + "/data_raw", queue_size));
+  imu_subscriber_.reset(new ImuSubscriber(nh_, subscribed_topic_name, queue_size));
 
   // Register magnetic data subscriber.
   if (use_mag_)
