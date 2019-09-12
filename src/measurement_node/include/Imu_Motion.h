@@ -1,5 +1,7 @@
 #pragma once
 #include <iostream>
+#include <queue>
+
 #include "ros/ros.h"
 #include <ros/console.h>
 #include "sensor_msgs/Imu.h"
@@ -8,16 +10,24 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/TransformStamped.h>
 
-#define SAMPLE_INTERVAL (0.010)
+constexpr double SAMPLE_INTERVAL() { return 0.005; }; // [s]
+constexpr double SAMPLE_INTERVAL_2() { return SAMPLE_INTERVAL() * SAMPLE_INTERVAL(); }; // [s]
+constexpr size_t QUEUE_SIZE() { return 10; };
+constexpr size_t VELOCITY_QUEUE_SIZE() { return QUEUE_SIZE() * 5; };
+constexpr double VELOCITY_ATTTENUATOR_GAIN_CONTINUOUS() { return 0.01; };  // [m/s]
+constexpr double VELOCITY_ATTENUATOR_TRESH_CONTINUOUS() { return 0.01; }; // [m/s]
+constexpr double VELOCITY_ATTENUATOR_TRESH_LEVEL() { return 0.005; }; // [m/s]
+constexpr double VELOCITY_ATTENUATOR_GAIN_LEVEL() { return 0.01; }; // [m/s]
 
 class Imu_Motion
 {
 private:
-    const double    dt = SAMPLE_INTERVAL; // [s]
-    const double    dt2 = SAMPLE_INTERVAL * SAMPLE_INTERVAL; // [s]
-    tf2::Vector3    velocity_o; // [m/s]
-    tf2::Vector3    acceleration_o; // [m/s^2]
-    tf2::Vector3    position_o;
+    const double                dt = SAMPLE_INTERVAL(); // [s]
+    const double                dt2 = SAMPLE_INTERVAL_2(); // [s]
+    tf2::Vector3                velocity_o;     // [m/s]
+    std::vector<tf2::Vector3>   velocity_queue;  
+    tf2::Vector3                acceleration_o; // [m/s^2]
+    tf2::Vector3                position_o;     // [m]
 
 public:
     Imu_Motion();

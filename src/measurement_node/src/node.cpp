@@ -3,6 +3,7 @@
 #include <thread>
 #include <mutex>
 #include <unistd.h>
+#include <fstream>
 
 #include <serial.h>
 #include <terminal.h>
@@ -13,6 +14,9 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #define SERIAL_PORT_NAME "/dev/ttyACM0"
+#define LOG_FILENAME    "log.csv"
+#define USE_MAG         false
+#define SENSORS_NUMBER  4
 
 std::mutex  general_node_mutex, command_mutex, serial_mutex;
 
@@ -24,7 +28,7 @@ enum Command_enum_t{
   CMD_NONE
 } command_char = CMD_NONE;
 
-MPU_Data mpuData(4, INV_FSR_4G, INV_FSR_500DPS, false);
+MPU_Data mpuData(SENSORS_NUMBER, INV_FSR_4G, INV_FSR_500DPS, USE_MAG);
 
 bool  serialDataReady = false;
 bool  serialPortConnect = false;
@@ -120,7 +124,7 @@ void serial_thread_fun(void)
   serial.write(std::string("C"));
   ROS_INFO("Remote device connection command sent.");
 
-  ros::Rate loop_rate(200); // 200Hz loop rate
+  ros::Rate loop_rate(300); // 300Hz loop rate
 
   general_node_mutex.lock();
   while(ros::ok() && serial.isOpen() && keepRunning)
@@ -214,13 +218,24 @@ void serial_thread_fun(void)
   }
 }
 
+void logData(long dataNumber, long timestamp, const tf2::Vector3 &position) {
+  static std::ofstream logFile(LOG_FILENAME, std::ios_base::out);
+  logFile << dataNumber << ",";
+  logFile << timestamp << ",";
+  logFile << position.m_floats[0] << ",";
+  logFile << position.m_floats[1] << ",";
+  logFile << position.m_floats[2];
+  logFile << "\n";
+}
+
 void ImuDataCallback(const sensor_msgs::Imu::ConstPtr &msg)
 {
   static tf2_ros::TransformBroadcaster br;
   static Imu_Motion imuMotion;
   static int loopCounter = 0;
 
-  if(loopCounter > 20) { 
+  if(loopCounter > 40) { 
+    static unsigned long dataCounter = 0;
     geometry_msgs::TransformStamped transformStamped;
 
     imuMotion.process(msg);
@@ -229,11 +244,15 @@ void ImuDataCallback(const sensor_msgs::Imu::ConstPtr &msg)
     transformStamped.header.frame_id = "base_link";
     transformStamped.child_frame_id = "test_frame";
 
-    tf2::convert(imuMotion.getPosition(), transformStamped.transform.translation);
-
+    tf2::Vector3 position = imuMotion.getPosition();
+    tf2::convert(position, transformStamped.transform.translation);
     transformStamped.transform.rotation = msg->orientation;
-
     br.sendTransform(transformStamped);
+
+    if(dataCounter % 20 == 0)
+      logData(dataCounter, dataCounter * 5, position);
+
+    dataCounter++;
   }
   else {
     loopCounter++;
@@ -257,22 +276,24 @@ int main(int argc, char **argv)
   std::thread command_thread(command_thread_fun);
 
   // IMU raw data message
-  ros::Publisher imuTopicPublisher = node.advertise<sensor_msgs::Imu>("imu/data_raw", 10, true);
+  ros::Publisher imuTopicPublisher = node.advertise<sensor_msgs::Imu>("imu/data_raw", 3, true);
   sensor_msgs::Imu imu_msg;
   imu_msg.header.frame_id = "imu_tf";
   imu_msg.header.stamp.sec = 0;
   imu_msg.header.stamp.nsec = 0;
 
+#if USE_MAG == true
   // Mag data message
-  ros::Publisher magTopicPublisher = node.advertise<sensor_msgs::MagneticField>("imu/mag", 10, true);
+  ros::Publisher magTopicPublisher = node.advertise<sensor_msgs::MagneticField>("imu/mag", 1, true);
   sensor_msgs::MagneticField mag_msg;
   mag_msg.header.frame_id = "imu_tf";
   mag_msg.header.stamp.sec = 0;
   mag_msg.header.stamp.nsec = 0;
+#endif
 
   ros::Subscriber imuFilteredSubscriber = node.subscribe("/imu/data", 10, &ImuDataCallback);
 
-  ros::Rate loop_rate(200); // 200Hz loop rate
+  ros::Rate loop_rate(300); // 300Hz loop rate
   
   general_node_mutex.lock();
   while (ros::ok() && keepRunning)
@@ -290,12 +311,14 @@ int main(int argc, char **argv)
       MPU_Data::createDataRosMsg(data_containers[0], imu_msg);
       imuTopicPublisher.publish(imu_msg);
 
+#if USE_MAG == true
       // Publish Mag data
       if(mpuData.useMagnetometer()) {
         std::vector<MPU_Mag_Data_Struct_t> mag_data_containers(mpuData.getMagData());
         MPU_Data::createMagDataRosMsg(mag_data_containers[0], mag_msg);
         magTopicPublisher.publish(mag_msg);
       }
+#endif
     }
     else
     {
