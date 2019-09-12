@@ -13,8 +13,8 @@
 class Imu_Motion
 {
 private:
-    const float     dt = SAMPLE_INTERVAL; // [s]
-    const float     dt2 = SAMPLE_INTERVAL * SAMPLE_INTERVAL; // [s]
+    const double    dt = SAMPLE_INTERVAL; // [s]
+    const double    dt2 = SAMPLE_INTERVAL * SAMPLE_INTERVAL; // [s]
     tf2::Vector3    velocity_o; // [m/s]
     tf2::Vector3    acceleration_o; // [m/s^2]
     tf2::Vector3    position_o;

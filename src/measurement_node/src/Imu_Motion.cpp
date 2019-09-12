@@ -26,20 +26,28 @@ void Imu_Motion::process(const sensor_msgs::Imu::ConstPtr &imuData)
     // Removing gravity
     removeGravity(orientation, acceleration);
 
-    // if(acceleration.length() > 0.15)
-    // {
+    if(acceleration.length() < 0.06)
+        acceleration_o = tf2::Vector3(0.0, 0.0, 0.0);
+    else
         // Rotating accel vector
         acceleration = tf2::quatRotate(orientation, acceleration);
 
-        // Computing displacement and velocity for every exis
-        // New displacement calculation
-        position_o += (acceleration + acceleration_o) / 4.0 * dt2 + velocity_o;
+    ROS_INFO("Acc: %f, %f, %f", acceleration.m_floats[0], acceleration.m_floats[1], acceleration.m_floats[2]);
 
-        // New speed calculation
-        velocity_o += (acceleration + acceleration_o) / 2.0 * dt;
+    // Computing displacement and velocity for every axis
+    // New displacement calculation
+    position_o += (acceleration + acceleration_o) / 4.0 * dt2 + velocity_o * dt;
+    ROS_INFO("Pos: %f, %f, %f", position_o.m_floats[0], position_o.m_floats[1], position_o.m_floats[2]);
 
-        // New previous acceleration value
-        acceleration_o = acceleration;
-    // }
+    // New speed calculation
+    velocity_o += (acceleration + acceleration_o) / 2.0 * dt;
+    if(velocity_o.length() < 0.03)
+        velocity_o = tf2::Vector3(0.0, 0.0, 0.0);
+    ROS_INFO("Vel: %f, %f, %f", velocity_o.m_floats[0], velocity_o.m_floats[1], velocity_o.m_floats[2]);
+    printf("\n");
+
+    // New previous acceleration value
+    acceleration_o = acceleration;
+
 }
 

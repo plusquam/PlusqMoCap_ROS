@@ -218,22 +218,26 @@ void ImuDataCallback(const sensor_msgs::Imu::ConstPtr &msg)
 {
   static tf2_ros::TransformBroadcaster br;
   static Imu_Motion imuMotion;
-  geometry_msgs::TransformStamped transformStamped;
+  static int loopCounter = 0;
 
-  imuMotion.process(msg);
+  if(loopCounter > 20) { 
+    geometry_msgs::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = ros::Time::now();
-  transformStamped.header.frame_id = "base_link";
-  transformStamped.child_frame_id = "test_frame";
+    imuMotion.process(msg);
 
-  tf2::convert(imuMotion.getPosition(), transformStamped.transform.translation);
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = "base_link";
+    transformStamped.child_frame_id = "test_frame";
 
-  transformStamped.transform.rotation = msg->orientation;
+    tf2::convert(imuMotion.getPosition(), transformStamped.transform.translation);
 
-  tf2::Vector3 pos = imuMotion.getPosition();
-  ROS_INFO("Pos: %f, %f, %f", pos.m_floats[0], pos.m_floats[1], pos.m_floats[2]);
+    transformStamped.transform.rotation = msg->orientation;
 
-  br.sendTransform(transformStamped);
+    br.sendTransform(transformStamped);
+  }
+  else {
+    loopCounter++;
+  }
 }
 
 
