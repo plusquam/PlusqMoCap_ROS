@@ -234,25 +234,25 @@ int main(int argc, char **argv)
   // IMU raw data message
   ros::Publisher imuTopicPublisher0 = node.advertise<sensor_msgs::Imu>("imu/data_raw/0", 3, true);
   sensor_msgs::Imu imu_msg0;
-  imu_msg0.header.frame_id = "mock_tf_0";
+  imu_msg0.header.frame_id = "imu_tf_0";
   imu_msg0.header.stamp.sec = 0;
   imu_msg0.header.stamp.nsec = 0;
 
   ros::Publisher imuTopicPublisher1 = node.advertise<sensor_msgs::Imu>("imu/data_raw/1", 3, true);
   sensor_msgs::Imu imu_msg1;
-  imu_msg1.header.frame_id = "mock_tf_1";
+  imu_msg1.header.frame_id = "imu_tf_1";
   imu_msg1.header.stamp.sec = 0;
   imu_msg1.header.stamp.nsec = 0;
 
   ros::Publisher imuTopicPublisher2 = node.advertise<sensor_msgs::Imu>("imu/data_raw/2", 3, true);
   sensor_msgs::Imu imu_msg2;
-  imu_msg2.header.frame_id = "mock_tf_2";
+  imu_msg2.header.frame_id = "imu_tf_2";
   imu_msg2.header.stamp.sec = 0;
   imu_msg2.header.stamp.nsec = 0;
 
   ros::Publisher imuTopicPublisher3 = node.advertise<sensor_msgs::Imu>("imu/data_raw/3", 3, true);
   sensor_msgs::Imu imu_msg3;
-  imu_msg3.header.frame_id = "mock_tf_3";
+  imu_msg3.header.frame_id = "imu_tf_3";
   imu_msg3.header.stamp.sec = 0;
   imu_msg3.header.stamp.nsec = 0;
   
