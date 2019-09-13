@@ -38,7 +38,7 @@ void logData(std::ofstream &logFile, long dataNumber, long timestamp, const tf2:
 static void ImuDataCallback_0(const sensor_msgs::Imu::ConstPtr &msg)
 {
   static tf2_ros::TransformBroadcaster br;
-  static Imu_Motion imuMotion;
+  static Imu_Motion imuMotion(tf2::Vector3(0.0, 0.0, 1.48));
   static int loopCounter = 0;
 
   if(loopCounter > 40) { 
@@ -69,7 +69,7 @@ static void ImuDataCallback_0(const sensor_msgs::Imu::ConstPtr &msg)
 static void ImuDataCallback_1(const sensor_msgs::Imu::ConstPtr &msg)
 {
   static tf2_ros::TransformBroadcaster br;
-  static Imu_Motion imuMotion;
+  static Imu_Motion imuMotion(tf2::Vector3(0.29, 0.0, 1.55));
   static int loopCounter = 0;
 
   if(loopCounter > 40) { 
@@ -100,7 +100,7 @@ static void ImuDataCallback_1(const sensor_msgs::Imu::ConstPtr &msg)
 static void ImuDataCallback_2(const sensor_msgs::Imu::ConstPtr &msg)
 {
   static tf2_ros::TransformBroadcaster br;
-  static Imu_Motion imuMotion;
+  static Imu_Motion imuMotion(tf2::Vector3(0.54, 0.0, 1.55));
   static int loopCounter = 0;
 
   if(loopCounter > 40) { 
@@ -131,7 +131,7 @@ static void ImuDataCallback_2(const sensor_msgs::Imu::ConstPtr &msg)
 static void ImuDataCallback_3(const sensor_msgs::Imu::ConstPtr &msg)
 {
   static tf2_ros::TransformBroadcaster br;
-  static Imu_Motion imuMotion;
+  static Imu_Motion imuMotion(tf2::Vector3(0.73, 0.0, 1.55));
   static int loopCounter = 0;
 
   if(loopCounter > 40) { 

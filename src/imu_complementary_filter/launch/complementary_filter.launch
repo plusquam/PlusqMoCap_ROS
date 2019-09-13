@@ -10,7 +10,7 @@
     <param name="publish_tf" value="false"/>
     <param name="publish_debug_topics" value="false"/>
     <param name="use_mag" value="false"/>
-    <param name="gain_acc" value="0.000001"/>
+    <param name="gain_acc" value="0.00001"/>
     <param name="gain_mag" value="0.01"/>
     <param name="constant_dt" value="0.005"/>
   </node>

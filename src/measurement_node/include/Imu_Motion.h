@@ -12,12 +12,12 @@
 
 constexpr double SAMPLE_INTERVAL() { return 0.005; }; // [s]
 constexpr double SAMPLE_INTERVAL_2() { return SAMPLE_INTERVAL() * SAMPLE_INTERVAL(); }; // [s]
-constexpr size_t QUEUE_SIZE() { return 10; };
+constexpr size_t QUEUE_SIZE() { return 5; };
 constexpr size_t VELOCITY_QUEUE_SIZE() { return QUEUE_SIZE() * 5; };
-constexpr double VELOCITY_ATTTENUATOR_GAIN_CONTINUOUS() { return 0.01; };  // [m/s]
-constexpr double VELOCITY_ATTENUATOR_TRESH_CONTINUOUS() { return 0.01; }; // [m/s]
-constexpr double VELOCITY_ATTENUATOR_TRESH_LEVEL() { return 0.005; }; // [m/s]
-constexpr double VELOCITY_ATTENUATOR_GAIN_LEVEL() { return 0.01; }; // [m/s]
+constexpr double VELOCITY_ATTTENUATOR_GAIN_CONTINUOUS() { return 0.02; };  // [m/s]
+constexpr double VELOCITY_ATTENUATOR_TRESH_CONTINUOUS() { return 0.015; }; // [m/s]
+constexpr double VELOCITY_ATTENUATOR_TRESH_LEVEL() { return 0.015; }; // [m/s]
+constexpr double VELOCITY_ATTENUATOR_GAIN_LEVEL() { return 0.005; }; // [m/s]
 
 class Imu_Motion
 {
@@ -30,7 +30,7 @@ private:
     tf2::Vector3                position_o;     // [m]
 
 public:
-    Imu_Motion();
+    Imu_Motion(tf2::Vector3 initialPosition = tf2::Vector3(0.0, 0.0, 0.0));
     void process(const sensor_msgs::Imu::ConstPtr &imuData);
     inline tf2::Vector3 getPosition()
     {

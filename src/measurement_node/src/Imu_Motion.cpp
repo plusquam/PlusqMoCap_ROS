@@ -3,9 +3,9 @@
 #define G_ACCEL_VALUE   9.8105 //[m/s^2 / g]
 constexpr double VELOCITY_ATTENUATOR_GAIN_INV() { return 1.0 - VELOCITY_ATTTENUATOR_GAIN_CONTINUOUS(); }
 
-Imu_Motion::Imu_Motion()
+Imu_Motion::Imu_Motion(tf2::Vector3 initialPosition)
 :   velocity_o(tf2::Vector3(0.0, 0.0, 0.0)),
-    position_o(tf2::Vector3(0.0, 0.0, 0.0)),
+    position_o(initialPosition),
     acceleration_o(tf2::Vector3(0.0, 0.0, 0.0))
 { 
     velocity_queue.reserve(VELOCITY_QUEUE_SIZE());

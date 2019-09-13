@@ -1,5 +1,7 @@
 #include "MPU_Data.h"
 #include <math.h>
+#include <string>
+#include <fstream>
 
 #define G_ACCEL_VALUE   9.8105 //[m/s^2 / g]
 
@@ -13,6 +15,67 @@ static constexpr double getMagScaleFactor()
     return 1000000 / 0.15;
 }
 
+void MPU_Data::readBiasFromFile()
+{
+    std::ifstream calibrationFile("calibration_file.csv", std::ios_base::in);
+
+    if(calibrationFile.is_open()) 
+    {
+        printf("\n\n");
+        ROS_INFO("Reading calibration file...");
+
+        std::vector<std::string> row_container;
+        std::string row;
+        while(std::getline(calibrationFile, row, '\n'))
+        {
+            row_container.push_back(row);
+        }
+        
+        for(std::vector<std::string>::iterator it = row_container.begin(); it != row_container.end(); ++it)
+        {
+            std::stringstream   lineStream(*it);
+            std::vector<std::string> cells;
+            std::string cell;
+            while(std::getline(lineStream, cell, ',')) {
+                cells.push_back(cell);
+            }
+
+            int sensor_number = std::stoi(cells[0]);
+            MPU_Data_Struct_t tempDataStruct;
+            tempDataStruct.accel_x = std::stod(cells[1]);
+            tempDataStruct.accel_y = std::stod(cells[2]);
+            tempDataStruct.accel_z = std::stod(cells[3]);
+
+            tempDataStruct.gyro_x = std::stod(cells[4]);
+            tempDataStruct.gyro_y = std::stod(cells[5]);
+            tempDataStruct.gyro_z = std::stod(cells[6]);
+
+            ROS_INFO("Bias estimation for sensor nr %i:", sensor_number);
+            ROS_INFO("Acc: x=%f, y=%f, z=%f", tempDataStruct.accel_x, tempDataStruct.accel_y, tempDataStruct.accel_z);
+            ROS_INFO("Gyro: x=%f, y=%f, z=%f", tempDataStruct.gyro_x, tempDataStruct.gyro_y, tempDataStruct.gyro_z);
+
+            _bias_container.push_back(tempDataStruct);
+
+            if(_useMagnetometer) {
+                MPU_Mag_Data_Struct_t tempMagDataStruct;
+
+                tempMagDataStruct.x = std::stod(cells[7]);
+                tempMagDataStruct.y = std::stod(cells[8]);
+                tempMagDataStruct.z = std::stod(cells[9]);
+
+                _mag_bias_container.push_back(tempMagDataStruct);
+
+                ROS_INFO("Mag: x=%f, y=%f, z=%f", tempMagDataStruct.x, tempMagDataStruct.y, tempMagDataStruct.z);
+            }
+
+            printf("\n");
+        }
+        _biasSet = true;
+        calibrationFile.close();
+    }
+}
+
+
 MPU_Data::MPU_Data(int numberOfSensors, Accel_Sensitivity_Scale_Factor_t accel_scale, float gyro_scale, bool useMagnetometer)
 :   _numberOfSensors(numberOfSensors),
     _useMagnetometer(useMagnetometer),
@@ -22,6 +85,8 @@ MPU_Data::MPU_Data(int numberOfSensors, Accel_Sensitivity_Scale_Factor_t accel_s
 {
     _data_container.reserve(_numberOfSensors);
     _mag_data_container.reserve(_numberOfSensors);
+
+    readBiasFromFile();
 };
 
 /* inputBuffer size: 12B for acc + gyro */ 
@@ -148,6 +213,30 @@ bool MPU_Data::setBias(const std::vector<uint8_t> &inputData)
             dataOffset += 6; // Step to next sensor data
         }
     }
+
+    std::ofstream calibrationFile("calibration_file.csv", std::ios_base::out);
+    
+    for(int sensor_index = 0; sensor_index < _numberOfSensors; ++sensor_index)
+    {
+        calibrationFile << sensor_index << ",";
+        calibrationFile << _bias_container[sensor_index].accel_x << ",";
+        calibrationFile << _bias_container[sensor_index].accel_y << ",";
+        calibrationFile << _bias_container[sensor_index].accel_z << ",";
+
+        calibrationFile << _bias_container[sensor_index].gyro_x << ",";
+        calibrationFile << _bias_container[sensor_index].gyro_y << ",";
+        calibrationFile << _bias_container[sensor_index].gyro_z;
+        if(_useMagnetometer) {
+            calibrationFile << ",";
+            calibrationFile << _mag_bias_container[sensor_index].x << ",";
+            calibrationFile << _mag_bias_container[sensor_index].y << ",";
+            calibrationFile << _mag_bias_container[sensor_index].z;
+        }
+
+        calibrationFile << "\n";
+    }
+
+    calibrationFile.close();
 
     _biasSet = true;
     ROS_INFO("Bias estimation completed\n");
